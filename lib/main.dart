@@ -7,32 +7,54 @@ void main() {
 }
 
 class Countdown extends AnimatedWidget {
-  Countdown({ Key key, this.animation }) : super(key: key, listenable: animation);
+  Countdown({Key key, Animation<int> animation})
+      : super(key: key, listenable: animation);
 
-  Animation<int> animation;
-
-  String timerString(int count) {    
-    var countDownTo = new Duration(seconds: count);
-    return '${countDownTo.inHours}:${(countDownTo.inMinutes % 60).toString().padLeft(2, '0')}:${(countDownTo.inSeconds % 60).toString().padLeft(2, '0')}';
-  }
+  String hoursString(Duration duration) => '${duration.inHours}';
+  String minsString(Duration duration) =>
+      '${(duration.inMinutes % 60).toString().padLeft(2, '0')}';
+  String secsString(Duration duration) =>
+      '${(duration.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
-  build(BuildContext context){
-    return new Text(
-      timerString(animation.value),
-      style: new TextStyle(fontSize: 80.0),
+  build(BuildContext context) {
+    final Animation<int> animation = listenable;
+
+    Duration duration = new Duration(seconds: animation.value);
+
+    return new Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      textBaseline: TextBaseline.alphabetic,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      children: <Widget>[
+        new Text(
+          hoursString(duration),
+          style: new TextStyle(fontSize: 80.0),
+        ),
+        new Text(':', style: new TextStyle(fontSize: 80.0)),
+        new Text(
+          minsString(duration),
+          style: new TextStyle(fontSize: 80.0),
+        ),
+        new Text(':', style: new TextStyle(fontSize: 80.0)),
+        new Text(
+          secsString(duration),
+          style: new TextStyle(fontSize: 80.0),
+        )
+      ],
     );
   }
-
-
 }
+
+// class
 
 class MyApp extends StatefulWidget {
   State createState() => new _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
-  AnimationController _controller;
+class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
+  AnimationController controller;
+  Animation<int> animation;
 
   DateTime nextShift;
   Duration _duration;
@@ -40,17 +62,28 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    
+
     var currentTime = new DateTime.now();
     this.nextShift = currentTime.add(new Duration(hours: 1));
     this._duration = nextShift.difference(currentTime);
 
-    _controller = new AnimationController(
+    controller = new AnimationController(
       vsync: this,
       duration: this._duration,
     );
 
-    _controller.forward(from: 0.0);
+    animation = new StepTween(
+      begin: this._duration.inSeconds,
+      end: 0,
+    ).animate(controller);
+
+    controller.forward();
+  }
+
+  @override
+  dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -59,10 +92,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
       body: new Container(
         child: new Center(
           child: new Countdown(
-            animation: new StepTween(
-              begin: this._duration.inSeconds,
-              end: 0,
-            ).animate(_controller),
+            animation: animation,
           ),
         ),
       ),
